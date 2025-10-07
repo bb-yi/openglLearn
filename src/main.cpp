@@ -15,6 +15,7 @@
 
 #include <user/Shader.h>
 #include <user/Camera.h>
+#include <user/Model.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -122,6 +123,8 @@ int main()
     //创建着色器
     Shader ourShader("Shader/userShader.vs", "Shader/userShader.fs");
     Shader lightShader("Shader/lightShader.vs", "Shader/lightShader.fs");
+    Model ourModel("assets/model/backpack/backpack.obj");
+    Shader backpackShader("Shader/backpack.vs", "Shader/backpack.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -347,6 +350,8 @@ int main()
             // glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
+
+
         //绘制灯光
         glBindVertexArray(lightVAO);
         lightShader.use();
@@ -359,6 +364,17 @@ int main()
         lightShader.setMat4("projection_matrix", projection);
 
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0); // 使用索引绘制
+
+        backpackShader.use();
+        backpackShader.setMat4("projection", projection);
+        backpackShader.setMat4("view", view);
+
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+        model = glm::rotate(model, (float)glm::radians(glfwGetTime() * 90.0f), glm::vec3(1.0f, 1.0f, 0.0f));
+        backpackShader.setMat4("model", model);
+        ourModel.Draw(backpackShader);
 
 
         ImGui::Render();
@@ -373,8 +389,8 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // 在文件顶部的全局变量区域添加
-        static bool altWasPressed = false;  // 添加static使其具有内部链接性
+        // 在按下alt时切换鼠标锁定
+        static bool altWasPressed = false;
 
         // 在渲染循环中
         if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)

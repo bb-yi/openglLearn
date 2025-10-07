@@ -5,7 +5,7 @@ CXX := C:/MinGW/bin/g++.exe
 CC  := C:/MinGW/bin/gcc.exe
 CXXFLAGS := -std=c++17 -Wall -Wextra -g -D_CRT_SECURE_NO_WARNINGS -DIMGUI_DISABLE_WIN32_FUNCTIONS
 LDFLAGS  := -Llib
-LIBS     := -lglad -lglfw3dll -lopengl32
+LIBS     := -lglad -lglfw3dll -lassimp -lopengl32
 
 # ==========================
 # Directories

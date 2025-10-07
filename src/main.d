@@ -178,4 +178,17 @@ src/main.o: src/main.cpp include/glad/glad.h include/KHR/khrplatform.h \
  include/glm/gtc/type_ptr.inl include/imgui/imgui.h \
  include/imgui/imconfig.h include/imgui/backends/imgui_impl_glfw.h \
  include/imgui/backends/imgui_impl_opengl3.h include/stb_image.h \
- include/user/Shader.h include/user/Camera.h
+ include/user/Shader.h include/user/Camera.h include/user/Model.h \
+ include/assimp/Importer.hpp include/assimp/types.h include/assimp/defs.h \
+ include/assimp/vector3.h include/assimp/./Compiler/pushpack1.h \
+ include/assimp/./Compiler/poppack1.h include/assimp/vector2.h \
+ include/assimp/color4.h include/assimp/matrix3x3.h \
+ include/assimp/matrix4x4.h include/assimp/quaternion.h \
+ include/assimp/vector2.inl include/assimp/vector3.inl \
+ include/assimp/color4.inl include/assimp/quaternion.inl \
+ include/assimp/matrix3x3.inl include/assimp/matrix4x4.inl \
+ include/assimp/config.h include/assimp/scene.h include/assimp/texture.h \
+ include/assimp/mesh.h include/assimp/light.h include/assimp/camera.h \
+ include/assimp/material.h include/assimp/material.inl \
+ include/assimp/anim.h include/assimp/metadata.h \
+ include/assimp/postprocess.h include/user/mesh.h include/user/shader.h

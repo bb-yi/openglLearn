@@ -63,7 +63,16 @@
 			"sstream": "cpp",
 			"cinttypes": "cpp",
 			"cstring": "cpp",
-			"iomanip": "cpp"
+			"iomanip": "cpp",
+			"chrono": "cpp",
+			"condition_variable": "cpp",
+			"list": "cpp",
+			"unordered_set": "cpp",
+			"map": "cpp",
+			"ratio": "cpp",
+			"set": "cpp",
+			"mutex": "cpp",
+			"thread": "cpp"
 		}
 	}
 }

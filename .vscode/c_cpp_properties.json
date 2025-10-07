@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "C:/MinGW/include/**",
-                "${workspaceFolder}/include/imgui"
+                "${workspaceFolder}/include/imgui",
+                "${workspaceFolder}/include/assimp"
             ],
             "defines": [
                 "_DEBUG",
