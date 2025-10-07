@@ -4,11 +4,75 @@ in vec3 Normal;
 in vec3 FragPos;
 out vec4 FragColor;
 
+struct Material{
+    vec3 baseColor;
+    sampler2D baseTexture;
+    vec3 specular;
+    float shininess;
+};
+
+struct DirLight{
+    vec3 lightcolor;
+    vec3 specularcolor;
+    vec3 direction;
+};
+
+struct PointLight{
+    vec3 lightcolor;
+    vec3 specularcolor;
+    vec3 position;
+    vec3 attenuation;//衰减系数 常数项 一次项 二次项
+};
+
+struct SpotLight{
+    vec3 lightcolor;
+    vec3 specularcolor;
+    vec3 position;
+    vec3 direction;
+    float angle;
+    float smoothness;
+    vec3 attenuation;//衰减系数 常数项 一次项 二次项
+};
+
+uniform Material material;
+
+//声明灯光
+#define NR_POINT_LIGHTS 4
+uniform DirLight dirLight;
+uniform PointLight pointLight[NR_POINT_LIGHTS];
+uniform SpotLight spotLight;
+
 uniform float ourTime;
 uniform vec4 ourColor;// 在OpenGL程序代码中设定这个变量
-uniform sampler2D ourTexture;
-uniform vec3 lightPos;
 uniform vec3 viewPos;
+
+//inout关键词会保留输入 out关键词会覆盖输入
+vec3 AdjustHSL(vec3 color,float hueShift,float satShift,float lightShift);//色相饱和度明度调整
+void CalcDirLight(DirLight light,vec3 normal,vec3 viewDir,inout vec3 diffusecolor,inout vec3 specularcolor);
+void CalcPointLight(PointLight light,vec3 normal,vec3 fragPos,vec3 viewDir,inout vec3 diffusecolor,inout vec3 specularcolor);
+void CalcSpotLight(SpotLight light,vec3 normal,vec3 fragPos,vec3 viewDir,inout vec3 diffusecolor,inout vec3 specularcolor);
+
+void main()
+{
+    vec3 viewDir=normalize(viewPos-FragPos);//指向相机
+    
+    vec3 lightdiff=vec3(0.);
+    vec3 lightspec=vec3(0.);
+    // directional light
+    CalcDirLight(dirLight,Normal,viewDir,lightdiff,lightspec);
+    // point lights
+    for(int i=0;i<NR_POINT_LIGHTS;i++){
+        CalcPointLight(pointLight[i],Normal,FragPos,viewDir,lightdiff,lightspec);
+    }
+    // spotlight
+    CalcSpotLight(spotLight,Normal,FragPos,viewDir,lightdiff,lightspec);
+    
+    vec3 baseColor=AdjustHSL(texture(material.baseTexture,TexCoord).xyz,ourTime/ourColor.x,0.,0.);
+    vec3 ambient=.1*baseColor;
+    
+    FragColor=vec4(baseColor*lightdiff*material.baseColor+ambient+material.specular*lightspec,1.);
+    FragColor=vec4(lightdiff,1.);
+}
 
 // 调整色相、饱和度、明度
 // color: 输入的RGB颜色 (0-1范围)
@@ -61,15 +125,53 @@ vec3 AdjustHSL(vec3 color,float hueShift,float satShift,float lightShift)
     return rgb+vec3(m);
 }
 
-void main()
+// calculates the color when using a directional light.
+void CalcDirLight(DirLight light,vec3 normal,vec3 viewDir,inout vec3 diffusecolor,inout vec3 specularcolor)
 {
-    vec3 baseColor=AdjustHSL(texture(ourTexture,TexCoord).xyz,ourTime/ourColor.x,0.,0.);
-    vec3 ambient=.1*baseColor;
-    vec3 lightDir=normalize(lightPos-FragPos);//指向灯光
-    vec3 viewDir=normalize(viewPos-FragPos);//指向相机
-    float diff=max(dot(Normal,lightDir),0.);
-    float spec=pow(max(dot(reflect(-lightDir,Normal),viewDir),0.),32.);
-    FragColor=vec4(baseColor*diff+ambient+vec3(spec),1.);
-    // FragColor=vec4(vec3(spec),1.);
+    vec3 lightDir=normalize(-light.direction);
+    // diffuse shading
+    float diff=max(dot(normal,lightDir),0.);
+    // specular shading
+    vec3 reflectDir=reflect(-lightDir,normal);
+    float spec=pow(max(dot(viewDir,reflectDir),0.),material.shininess);
+    diffusecolor+=light.lightcolor*diff;
+    specularcolor+=light.specularcolor*spec;
 }
 
+// calculates the color when using a point light.
+void CalcPointLight(PointLight light,vec3 normal,vec3 fragPos,vec3 viewDir,inout vec3 diffusecolor,inout vec3 specularcolor)
+{
+    vec3 lightDir=normalize(light.position-fragPos);
+    // diffuse shading
+    float diff=max(dot(normal,lightDir),0.);
+    // specular shading
+    vec3 reflectDir=reflect(-lightDir,normal);
+    float spec=pow(max(dot(viewDir,reflectDir),0.),material.shininess);
+    // attenuation
+    float distance=length(light.position-fragPos);
+    float attenuation=1./(light.attenuation.x+light.attenuation.y*distance+light.attenuation.z*(distance*distance));
+    // combine results
+    diffusecolor+=light.lightcolor*diff*attenuation;
+    specularcolor+=light.specularcolor*spec*attenuation;
+}
+
+// calculates the color when using a spot light.
+void CalcSpotLight(SpotLight light,vec3 normal,vec3 fragPos,vec3 viewDir,inout vec3 diffusecolor,inout vec3 specularcolor)
+{
+    vec3 lightDir=normalize(light.position-fragPos);
+    // diffuse shading
+    float diff=max(dot(normal,lightDir),0.);
+    // specular shading
+    vec3 reflectDir=reflect(-lightDir,normal);
+    float spec=pow(max(dot(viewDir,reflectDir),0.),material.shininess);
+    // attenuation
+    float distance=length(light.position-fragPos);
+    float attenuation=1./(light.attenuation.x+light.attenuation.y*distance+light.attenuation.z*(distance*distance));
+    
+    // spotlight intensity
+    float theta=dot(lightDir,normalize(-light.direction));
+    float intensity=smoothstep(cos(light.angle+light.smoothness),cos(light.angle-light.smoothness),theta);
+    // combine results
+    diffusecolor+=light.lightcolor*diff*attenuation*intensity;
+    specularcolor+=light.specularcolor*spec*attenuation*intensity;
+}

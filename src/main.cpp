@@ -288,22 +288,58 @@ int main()
         float timeValue = glfwGetTime();
         ourShader.setFloat4("ourColor", uniformValue, 0.0f, 0.0f, 1.0f);
         ourShader.setFloat("ourTime", timeValue);
+        ourShader.setVec3("material.baseColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        ourShader.setVec3("material.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+        ourShader.setFloat("material.shininess", 32.0f);
         glm::mat4 trans = glm::mat4(1.0f);
         trans = glm::rotate(trans, glm::radians(90.0f * timeValue), glm::vec3(0.0, 0.0, 1.0));
         trans = glm::scale(trans, glm::vec3(1.0, 1.0, 1.0));
         ourShader.setMat4("transform", trans);
-        ourShader.setVec3("lightPos", lightPos);
         ourShader.setVec3("viewPos", camera.Position);
 
+        ourShader.setVec3("pointLight[0].position", lightPos);
+        ourShader.setVec3("pointLight[0].lightcolor", glm::vec3(1.0f, 1.0f, 1.0f));
+        ourShader.setVec3("pointLight[0].specularcolor", glm::vec3(1.0f, 1.0f, 1.0f));
+        ourShader.setVec3("pointLight[0].attenuation", glm::vec3(1.0f, 0.22f, 0.2f));
 
-        glBindTexture(GL_TEXTURE_2D, texture);
+        ourShader.setVec3("pointLight[1].position", glm::vec3(1.0f, 1.0f, 1.0f));
+        ourShader.setVec3("pointLight[1].lightcolor", glm::vec3(0.0f, 1.0f, 0.0f));
+        ourShader.setVec3("pointLight[1].specularcolor", glm::vec3(0.0f, 1.0f, 0.0f));
+        ourShader.setVec3("pointLight[1].attenuation", glm::vec3(1.0f, 0.22f, 0.2f));
+
+        ourShader.setVec3("pointLight[2].position", glm::vec3(-1.0f, 1.0f, 1.0f));
+        ourShader.setVec3("pointLight[2].lightcolor", glm::vec3(1.0f, 0.0f, 1.0f));
+        ourShader.setVec3("pointLight[2].specularcolor", glm::vec3(1.0f, 0.0f, 1.0f));
+        ourShader.setVec3("pointLight[2].attenuation", glm::vec3(1.0f, 0.22f, 0.2f));
+
+        ourShader.setVec3("pointLight[3].position", glm::vec3(-1.0f, 1.0f, -1.0f));
+        ourShader.setVec3("pointLight[3].lightcolor", glm::vec3(1.0f, 0.0f, 0.0f));
+        ourShader.setVec3("pointLight[3].specularcolor", glm::vec3(1.0f, 0.0f, 0.0f));
+        ourShader.setVec3("pointLight[3].attenuation", glm::vec3(1.0f, 0.22f, 0.2f));
+
+        ourShader.setVec3("dirLight.lightcolor", glm::vec3(0.2f, 0.2f, 0.0f));
+        ourShader.setVec3("dirLight.specularcolor", glm::vec3(0.2f, 0.2f, 0.0f));
+        ourShader.setVec3("dirLight.direction", glm::vec3(-1.0f, -1.0f, -1.0f));
+
+        ourShader.setVec3("spotLight.lightcolor", glm::vec3(0.0f, 0.0f, 2.0f));
+        ourShader.setVec3("spotLight.specularcolor", glm::vec3(0.0f, 0.0f, 1.0f));
+        ourShader.setVec3("spotLight.position", lightPos);
+        ourShader.setVec3("spotLight.direction", glm::vec3(0.0f, -1.0f, 0.0f));
+        ourShader.setFloat("spotLight.angle", glm::radians(15.0f));
+        ourShader.setFloat("spotLight.smoothness", glm::radians(3.0f));
+        ourShader.setVec3("spotLight.attenuation", glm::vec3(1.0f, 0.22f, 0.2f));
+
+        glActiveTexture(GL_TEXTURE0);//设置激活纹理单元0
+        glBindTexture(GL_TEXTURE_2D, texture);//绑定纹理
+        ourShader.setInt("material.baseTexture", 0);//设置材质属性
+
         glBindVertexArray(VAO); // 因为我们只有一个VAO，所以没有必要每次都绑定它，但是我们这样做是为了让事情更有条理
         // glDrawArrays(GL_TRIANGLES, 0, 3);
         for (unsigned int i = 0; i < 10; i++)
         {
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
-            // model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f) + i * 50.0f, glm::vec3(1.0f, 0.3f, 0.5f));
+            model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f) + i * 50.0f, glm::vec3(1.0f, 0.3f, 0.5f));
             float angle = 20.0f * i;
             model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
             ourShader.setMat4("model_matrix", model);
@@ -315,7 +351,7 @@ int main()
         glBindVertexArray(lightVAO);
         lightShader.use();
         glm::mat4 lightModel = glm::mat4(1.0f);
-        // lightPos = glm::vec3(sin(glfwGetTime()) * 2, 1.0f, 2.0f);
+        lightPos = glm::vec3(sin(glfwGetTime()) * 2, 1.0f, 0.0f);
         lightModel = glm::translate(lightModel, lightPos);
         lightModel = glm::scale(lightModel, glm::vec3(0.2f));
         lightShader.setMat4("model_matrix", lightModel);
