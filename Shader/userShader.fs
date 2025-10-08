@@ -69,10 +69,9 @@ void main()
     
     vec3 baseColor=AdjustHSL(texture(material.baseTexture,TexCoord).xyz,ourTime/ourColor.x,0.,0.);
     vec3 ambient=.1*baseColor;
-    
-    FragColor=vec4(baseColor*lightdiff*material.baseColor+ambient+material.specular*lightspec,1.);
+    FragColor=vec4(baseColor*lightdiff*material.baseColor+ambient+material.specular*lightspec,texture(material.baseTexture,TexCoord).a);
     // FragColor=vec4(lightdiff,1.);
-    FragColor=vec4(vec3(gl_FragCoord.z),1.);
+    // FragColor=vec4(vec3(gl_FragCoord.z),1.);
 }
 
 // 调整色相、饱和度、明度

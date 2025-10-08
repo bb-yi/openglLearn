@@ -108,10 +108,10 @@ int main()
     // 加载并生成纹理
     stbi_set_flip_vertically_on_load(true);//设置图片加载时是否翻转
     int width, height, nrChannels;
-    unsigned char* data = stbi_load("Tex/splash.png", &width, &height, &nrChannels, 0);
+    unsigned char* data = stbi_load("Tex/splash1.png", &width, &height, &nrChannels, 4);//4 通道数量
     if (data)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);//rgba需要data有四个通道，不然会内存越界闪退
         glGenerateMipmap(GL_TEXTURE_2D);//自动生成mipmap
     }
     else
@@ -125,6 +125,7 @@ int main()
     Shader lightShader("Shader/lightShader.vs", "Shader/lightShader.fs");
     Model ourModel("assets/model/backpack/backpack.obj");
     Shader backpackShader("Shader/backpack.vs", "Shader/backpack.fs");
+    Shader screenShader("Shader/screen.vs", "Shader/screen.fs");
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -182,6 +183,18 @@ int main()
         30, 31, 32, 33, 34, 35  // 下面
     };
 
+    //屏幕平面的顶点坐标
+    float quadVertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+        // positions   // texCoords
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+         1.0f, -1.0f,  1.0f, 0.0f,
+         1.0f,  1.0f,  1.0f, 1.0f
+    };
+
     //VBO Vertex Buffer Object
     //VAO Vertex Array Object
     //EBO Element Buffer Object
@@ -228,6 +241,20 @@ int main()
 
     glBindVertexArray(0);//解绑VAO
 
+    // 生成屏幕物体的VAO和VBO
+    unsigned int quadVAO, quadVBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glBindVertexArray(0);//解绑VAO
+
+
     //查询最大支持的顶点属性数量
     int nrAttributes;
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
@@ -249,6 +276,38 @@ int main()
     glm::vec3(1.5f,  0.2f, -1.5f),
     glm::vec3(-1.3f,  1.0f, -1.5f)
     };
+
+    screenShader.use();
+    screenShader.setInt("screenTexture", 0);
+
+    // 帧缓冲配置
+    // -------------------------
+    unsigned int framebuffer;
+    glGenFramebuffers(1, &framebuffer);//生成
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);//绑定
+    // create a color attachment texture
+    unsigned int textureColorbuffer;
+    glGenTextures(1, &textureColorbuffer);//生成贴图
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);//绑定为激活贴图
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);//设置贴图大小和格式
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);//设置环绕方式
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);//绑定贴图到帧缓冲
+    // 创建渲染缓冲 将深度和模版附加到帧缓冲上，不然后面渲染的深度测试和模版测试会没有效果
+    unsigned int rbo;
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); //对深度和模板缓冲区使用一个renderbuffer对象。
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // 把当前绑定的 FBO 的深度+模板附件指向这个 RBO
+    // 现在我们已经实际创建了framebuffer并添加了所有附件，我们想要检查它现在是否真的完成了
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // glEnable(GL_CULL_FACE);
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -256,6 +315,10 @@ int main()
         // input
         // -----
         processInput(window);
+
+        //绑定到自定义的FBO上
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        glEnable(GL_DEPTH_TEST); // 开启深度测试
 
         // Start the ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -379,6 +442,19 @@ int main()
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        // 现在绑定回默认framebuffer并绘制一个带有附加framebuffer颜色纹理的四边形平面
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST); // 关闭深度测试
+        // 清除所有相关缓冲区
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // 将透明色设置为白色（实际上没有必要，因为我们无论如何都无法看到平面后面）
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        screenShader.use();
+        glBindVertexArray(quadVAO);
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// 使用颜色附件纹理作为四边形平面的纹理
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
